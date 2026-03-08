@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>CN → EN (Mock Translator)</title>
-    <meta name="description" content="A minimal, modern Chinese-to-English mock translator UI." />
+    <title>CN → EN Translator</title>
+    <meta name="description" content="Chinese to English translator for overseas markets." />
     <style>
       :root {
         --bg: #f5f5f7;
@@ -85,7 +85,7 @@
       }
 
       h1 {
-        font-size: 18px;
+        font-size: 20px;
         font-weight: 600;
         letter-spacing: -0.02em;
         margin: 0;
@@ -215,6 +215,36 @@
         box-shadow: 0 0 0 4px var(--ring);
         border-color: rgba(0, 122, 255, 0.45);
       }
+      .btn:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+        transform: none;
+      }
+      .btnTranslate {
+        background: var(--accent);
+        color: white;
+        border-color: var(--accent);
+        padding: 10px 20px;
+        font-weight: 600;
+      }
+      .btnTranslate:hover:not(:disabled) {
+        filter: brightness(1.08);
+      }
+      .btnTranslate .spinner {
+        display: inline-block;
+        width: 14px;
+        height: 14px;
+        margin-right: 8px;
+        border: 2px solid rgba(255,255,255,0.4);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.7s linear infinite;
+        vertical-align: -2px;
+      }
+      .btnTranslate:not(:disabled) .spinner { display: none; }
+      .btnTranslate:disabled .spinner { display: inline-block; }
+      .btnTranslate:disabled .btnText { opacity: 0.9; }
+      @keyframes spin { to { transform: rotate(360deg); } }
 
       .grid {
         display: grid;
@@ -300,6 +330,7 @@
 
       .output {
         height: 460px;
+        transition: background 0.2s ease;
         border-radius: 14px;
         border: 1px solid var(--border);
         background: rgba(255, 255, 255, 0.62);
@@ -365,11 +396,11 @@
           <div class="dot" aria-hidden="true"></div>
           <div style="min-width: 0">
             <h1>Chinese → English</h1>
-            <p class="sub">A minimal translator UI with a lightweight, on-device mock translation engine.</p>
+            <p class="sub">Professional translation for overseas markets, powered by AI.</p>
           </div>
         </div>
         <div class="badge" role="status" aria-live="polite">
-          <strong>Mock mode</strong>
+          <strong>Status</strong>
           <span id="statusText">Ready</span>
         </div>
       </header>
@@ -377,6 +408,7 @@
       <section class="card" aria-label="Translator">
         <div class="toolbar">
           <div class="leftTools">
+            <button class="btn btnTranslate" id="translateBtn" type="button"><span class="spinner" aria-hidden="true"></span><span class="btnText">Translate</span></button>
             <label class="toggle" title="Include the original text below the English output">
               <input id="includeOriginal" type="checkbox" />
               Include original (for reference)
@@ -393,11 +425,11 @@
           <div class="pane">
             <div class="labelRow">
               <div class="label">Chinese input</div>
-              <div class="hint">Realtime • No network</div>
+              <div class="hint"><span id="charCount">0</span> chars · Ctrl+Enter to translate</div>
             </div>
             <textarea
               id="cnInput"
-              placeholder="Type Chinese here… e.g. 你好！我想点一杯咖啡。"
+              placeholder="Type Chinese here... e.g. 你好！我想点一杯咖啡。"
               spellcheck="false"
               autocomplete="off"
               autocapitalize="off"
@@ -408,7 +440,7 @@
           <div class="pane">
             <div class="labelRow">
               <div class="label">English output</div>
-              <div class="hint">Mock translation</div>
+              <div class="hint">AI translation</div>
             </div>
             <div id="enOutput" class="output" role="region" aria-label="Translated English" aria-live="polite"></div>
           </div>
@@ -417,11 +449,10 @@
 
       <footer>
         <div>
-          <strong>Note:</strong> This page uses a simple, deterministic mock translator for UI prototyping. It is not
-          intended to be accurate or fluent.
+          <strong>Note:</strong> Translation is performed by an AI service. Your text is sent to our server for processing.
         </div>
         <div>
-          Privacy: your text stays in your browser.
+          API key is stored securely on the server and never exposed to the browser.
         </div>
       </footer>
     </div>
@@ -433,118 +464,16 @@
       const enOutput = $("enOutput");
       const includeOriginal = $("includeOriginal");
       const statusText = $("statusText");
+      const translateBtn = $("translateBtn");
       const clearInputBtn = $("clearInput");
       const copyOutputBtn = $("copyOutput");
       const fillExampleBtn = $("fillExample");
 
-      const exactPhrases = new Map([
-        ["你好", "Hello"],
-        ["你好！", "Hello!"],
-        ["早上好", "Good morning"],
-        ["下午好", "Good afternoon"],
-        ["晚上好", "Good evening"],
-        ["谢谢", "Thank you"],
-        ["谢谢你", "Thank you"],
-        ["不客气", "You're welcome"],
-        ["对不起", "Sorry"],
-        ["没关系", "No worries"],
-        ["再见", "Goodbye"],
-        ["我爱你", "I love you"],
-        ["我想点一杯咖啡。", "I'd like to order a cup of coffee."],
-        ["我想点一杯咖啡", "I'd like to order a cup of coffee."],
-        ["我在学习英语。", "I'm learning English."],
-        ["我在学习英语", "I'm learning English."],
-      ]);
-
-      const replacementRules = [
-        // common pronouns / verbs
-        [/我叫([^\n，。！？!?]+)/g, "My name is $1"],
-        [/我是([^\n，。！？!?]+)/g, "I am $1"],
-        [/我想(要)?([^\n，。！？!?]+)/g, "I would like $2"],
-        [/我喜欢([^\n，。！？!?]+)/g, "I like $1"],
-        [/我不喜欢([^\n，。！？!?]+)/g, "I don't like $1"],
-        [/你好吗/g, "How are you"],
-        [/你叫什么名字/g, "What's your name"],
-        [/请问/g, "Excuse me"],
-        [/谢谢你/g, "Thank you"],
-        [/谢谢/g, "Thank you"],
-        [/对不起/g, "Sorry"],
-        [/没关系/g, "No worries"],
-        [/再见/g, "Goodbye"],
-
-        // places / basics
-        [/中国/g, "China"],
-        [/美国/g, "the United States"],
-        [/英国/g, "the United Kingdom"],
-        [/咖啡/g, "coffee"],
-        [/水/g, "water"],
-        [/茶/g, "tea"],
-        [/餐厅/g, "restaurant"],
-        [/机场/g, "airport"],
-        [/酒店/g, "hotel"],
-
-        // punctuation normalization
-        [/，/g, ", "],
-        [/。/g, "."],
-        [/！/g, "!"],
-        [/？/g, "?"],
-        [/；/g, "; "],
-        [/：/g, ": "],
-        [/（/g, " ("],
-        [/）/g, ") "],
-        [/“/g, '"'],
-        [/”/g, '"'],
-        [/‘/g, "'"],
-        [/’/g, "'"],
-      ];
-
-      const hasCJK = (s) => /[\u3400-\u9fff]/.test(s);
-
-      function translateMock(input) {
-        const trimmed = input.trim();
-        if (!trimmed) return "";
-
-        if (exactPhrases.has(trimmed)) {
-          return exactPhrases.get(trimmed);
-        }
-
-        // Apply simple rules line-by-line to preserve formatting.
-        const lines = input.replace(/\r\n/g, "\n").split("\n");
-        const outLines = lines.map((line) => {
-          let t = line;
-          for (const [re, rep] of replacementRules) t = t.replace(re, rep);
-          t = t.replace(/\s{2,}/g, " ").trimEnd();
-          return t;
-        });
-
-        let result = outLines.join("\n").trim();
-
-        // If we still have lots of Chinese characters, fall back to a deterministic mock sentence.
-        const remainingCjk = (result.match(/[\u3400-\u9fff]/g) || []).length;
-        const totalChars = Math.max(1, result.length);
-        const ratio = remainingCjk / totalChars;
-
-        if (hasCJK(result) && ratio > 0.15) {
-          const compact = trimmed.replace(/\s+/g, " ").slice(0, 240);
-          result =
-            "Mock translation (API not connected yet).\n" +
-            "—\n" +
-            "I can render the UI and translate a few common phrases, but this text needs a real translation engine.\n" +
-            "\n" +
-            "Snippet: “" +
-            compact +
-            (trimmed.length > compact.length ? "…”" : "”");
-        }
-
-        return result;
-      }
-
       function renderOutput(text, original, includeOriginalFlag) {
         if (!text) {
-          enOutput.innerHTML = '<div class="placeholder">Your English translation will appear here as you type.</div>';
+          enOutput.innerHTML = '<div class="placeholder">Click "Translate" to get the English translation.</div>';
           return;
         }
-
         let outputText = text;
         if (includeOriginalFlag && original.trim()) {
           outputText += "\n\n—\nOriginal (for reference):\n" + original.trim();
@@ -556,53 +485,93 @@
         statusText.textContent = msg;
       }
 
-      function debounce(fn, ms) {
-        let t = 0;
-        return (...args) => {
-          window.clearTimeout(t);
-          t = window.setTimeout(() => fn(...args), ms);
-        };
+      function setTranslateButtonLoading(isLoading) {
+        translateBtn.disabled = isLoading;
+        const textEl = translateBtn.querySelector(".btnText");
+        if (textEl) textEl.textContent = isLoading ? "Translating..." : "Translate";
       }
 
-      const update = debounce(() => {
-        const cn = cnInput.value;
-        const en = translateMock(cn);
-        renderOutput(en, cn, includeOriginal.checked);
-        setStatus(cn.trim() ? "Translating…" : "Ready");
-        window.setTimeout(() => setStatus("Ready"), cn.trim() ? 260 : 0);
-      }, 120);
+      async function doTranslate() {
+        const text = cnInput.value.trim();
+        if (!text) {
+          setStatus("Please enter some text to translate.");
+          return;
+        }
+        setTranslateButtonLoading(true);
+        setStatus("Translating...");
+        try {
+          const res = await fetch("/api/translate", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ text }),
+          });
+          const data = await res.json();
+          if (!res.ok) {
+            const errMsg = data.error || "Translation failed.";
+            enOutput.innerHTML = '<div class="placeholder" style="color: #c53030;">Error: ' + String(errMsg).replace(/</g, "&lt;") + "</div>";
+            setStatus("Error");
+            return;
+          }
+          const translation = data.translation || "";
+          renderOutput(translation, cnInput.value, includeOriginal.checked);
+          setStatus("Done");
+        } catch (err) {
+          enOutput.innerHTML = '<div class="placeholder" style="color: #c53030;">Error: Could not reach server. Run: npm run dev</div>';
+          setStatus("Error");
+        } finally {
+          setTranslateButtonLoading(false);
+        }
+      }
 
-      cnInput.addEventListener("input", update);
-      includeOriginal.addEventListener("change", update);
+      translateBtn.addEventListener("click", doTranslate);
+
+      function updateCharCount() {
+        const el = document.getElementById("charCount");
+        if (el) el.textContent = cnInput.value.length;
+      }
+      cnInput.addEventListener("input", updateCharCount);
+      cnInput.addEventListener("keydown", (e) => {
+        if (e.ctrlKey && e.key === "Enter") { e.preventDefault(); doTranslate(); }
+      });
+      updateCharCount();
+
+      includeOriginal.addEventListener("change", () => {
+        const curr = enOutput.textContent || "";
+        if (curr && !curr.includes("Error:") && !curr.includes("Click")) {
+          const parts = curr.split("\n\n—\nOriginal");
+          const translationOnly = (parts[0] || "").trim();
+          renderOutput(translationOnly, cnInput.value, includeOriginal.checked);
+        }
+      });
 
       clearInputBtn.addEventListener("click", () => {
         cnInput.value = "";
         cnInput.focus();
-        update();
+        renderOutput("", "", false);
+        setStatus("Ready");
+        updateCharCount();
       });
 
       fillExampleBtn.addEventListener("click", () => {
-        cnInput.value =
-          "你好！\n我叫李华。\n我想点一杯咖啡。\n谢谢！";
+        cnInput.value = "你好！\n我叫李华。\n我想点一杯咖啡。\n谢谢！";
         cnInput.focus();
-        update();
+        updateCharCount();
       });
 
       copyOutputBtn.addEventListener("click", async () => {
         const text = enOutput.textContent || "";
-        if (!text.trim()) return;
+        if (!text.trim() || text.includes("Click")) return;
         try {
           await navigator.clipboard.writeText(text);
           setStatus("Copied");
-          window.setTimeout(() => setStatus("Ready"), 650);
+          setTimeout(() => setStatus("Ready"), 650);
         } catch {
           setStatus("Copy failed");
-          window.setTimeout(() => setStatus("Ready"), 900);
+          setTimeout(() => setStatus("Ready"), 900);
         }
       });
 
-      // initial render
-      update();
+      renderOutput("", "", false);
       cnInput.focus();
     </script>
   </body>
