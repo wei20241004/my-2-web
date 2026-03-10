@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+    
+    <!-- SEO Meta Tags (optimized) -->
+    <title>LumiTranslate · AI Translator powered by DeepSeek</title>
+    <meta name="description" content="Free AI translation tool with daily quota & Pro plan. Clean, fast, and privacy-focused. Powered by DeepSeek API.">
+    <meta name="keywords" content="AI Translator, DeepSeek API, Free Translation, online translator, language tool, Pro translation">
+    <meta name="author" content="LumiTranslate">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://lumitranslate.vercel.app">
+    
+    <!-- Open Graph / social media -->
+    <meta property="og:title" content="LumiTranslate · AI Translator">
+    <meta property="og:description" content="SaaS-style AI translation with daily free quota and Pro membership.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://lumitranslate.vercel.app">
+    <meta property="og:image" content="https://lumitranslate.vercel.app/og-image.png"> <!-- optional -->
+
+    <!-- Tailwind CSS via CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Font Awesome 6 -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    
+    <!-- custom styles -->
+    <style>
+        body {
+            background: #f9fafc;
+            font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+        }
+        .card-shadow {
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.02), 0 2px 8px rgba(0, 0, 0, 0.02);
+            transition: box-shadow 0.2s ease, transform 0.1s ease;
+        }
+        .card-shadow:focus-within {
+            box-shadow: 0 14px 40px rgba(0, 0, 0, 0.04), 0 4px 12px rgba(17, 24, 39, 0.05);
+        }
+        .btn-scale:active {
+            transform: scale(0.96);
+        }
+        .toast-slide {
+            animation: slideDown 0.2s ease-out forwards;
+        }
+        @keyframes slideDown {
+            0% { opacity: 0; transform: translateY(-10px); }
+            100% { opacity: 1; transform: translateY(0); }
+        }
+        .input-ring:focus {
+            border-color: #1e293b;
+            box-shadow: 0 0 0 3px rgba(30, 41, 59, 0.1);
+            outline: none;
+        }
+        .history-chip {
+            transition: all 0.15s;
+            background-color: white;
+            border: 1px solid #e9edf2;
+            color: #1e293b;
+        }
+        .history-chip:hover {
+            background-color: #f1f4f9;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+        }
+        /* modal backdrop blur */
+        .modal-backdrop {
+            background-color: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+        }
+        /* pro badge gradient */
+        .pro-badge {
+            background: linear-gradient(135deg, #f5b041 0%, #e67e22 100%);
+            box-shadow: 0 2px 6px rgba(230, 126, 34, 0.2);
+        }
+        /* history table style */
+        .history-table-row {
+            transition: background-color 0.15s;
+        }
+        .history-table-row:hover {
+            background-color: #f8fafd;
+        }
+        .delete-btn, .fill-btn {
+            opacity: 0.5;
+            transition: opacity 0.15s, color 0.15s;
+        }
+        .history-table-row:hover .delete-btn,
+        .history-table-row:hover .fill-btn {
+            opacity: 1;
+        }
+        .fill-btn:hover {
+            color: #1e293b;
+            background-color: #edf2f7;
+        }
+        .delete-btn:hover {
+            color: #dc2626;
+            background-color: #fee2e2;
+        }
+    </style>
+</head>
+<body class="antialiased text-gray-800 flex items-start justify-center min-h-screen p-4 sm:p-6 md:p-8 relative">
+
+<!-- PRO MEMBER TOP BANNER (皇冠 + 文案) -->
+<div id="proTopBanner" class="hidden w-full max-w-6xl mx-auto mb-5 bg-gradient-to-r from-amber-50 to-amber-100/70 border border-amber-200 rounded-2xl py-3 px-5 flex items-center justify-between shadow-sm">
+    <div class="flex items-center gap-3">
+        <div class="w-8 h-8 bg-amber-200 rounded-full flex items-center justify-center text-amber-700">
+            <i class="fas fa-crown text-sm"></i>
+        </div>
+        <span class="text-sm font-medium text-amber-800">LumiTranslate Pro Member · 无限额度</span>
+    </div>
+    <div class="text-xs text-amber-600 bg-white/60 px-3 py-1 rounded-full border border-amber-200">
+        <i class="far fa-check-circle mr-1"></i>activated
+    </div>
+</div>
+
+<!-- PRO BADGE (floating, appears if pro activated) kept for backward but hidden by default? We'll keep subtle but use top banner as primary -->
+<div id="proBadgeContainer" class="fixed top-5 right-5 z-20 hidden">
+    <div class="pro-badge text-white text-xs font-semibold px-4 py-2 rounded-full shadow-md flex items-center gap-2">
+        <i class="fas fa-crown text-[10px]"></i>
+        <span>Pro Plan Activated</span>
+    </div>
+</div>
+
+<!-- MODAL overlay (hidden by default) -->
+<div id="limitModal" class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop transition-opacity duration-200" style="visibility: hidden; opacity: 0;">
+    <div class="bg-white rounded-3xl max-w-md w-full p-8 shadow-2xl border border-gray-100 transform transition-all duration-200 scale-95" id="modalContent">
+        <div class="flex items-center gap-3 mb-5">
+            <div class="w-10 h-10 bg-amber-100 rounded-2xl flex items-center justify-center text-amber-600">
+                <i class="fas fa-hourglass-half"></i>
+            </div>
+            <h2 class="text-xl font-semibold text-gray-800">Daily limit reached</h2>
+        </div>
+        
+        <p class="text-gray-500 text-sm leading-relaxed mb-6">
+            To get a permanent activation code for FREE, please contact the developer.
+        </p>
+
+        <!-- secret code input area -->
+        <div class="mb-6">
+            <label class="text-xs font-medium text-gray-400 block mb-2">ACTIVATION CODE</label>
+            <div class="flex gap-2">
+                <input type="text" id="secretCodeInput" placeholder="Enter code" class="w-full px-4 py-3 border border-gray-200 rounded-xl bg-gray-50/50 focus:bg-white input-ring text-sm transition-all" maxlength="10">
+                <button id="verifyCodeBtn" class="bg-gray-900 hover:bg-gray-800 text-white px-5 py-3 rounded-xl text-sm font-medium transition-all whitespace-nowrap shadow-sm">验证</button>
+            </div>
+            <p id="codeError" class="text-xs text-red-500 mt-2 hidden"><i class="fas fa-exclamation-circle mr-1"></i>Invalid code, try again</p>
+        </div>
+
+        <!-- bottom dismiss -->
+        <div class="flex justify-end">
+            <button id="closeModalBtn" class="text-sm text-gray-400 hover:text-gray-600 px-4 py-2 rounded-lg transition-colors">Maybe later</button>
+        </div>
+    </div>
+</div>
+
+<div class="w-full max-w-6xl">
+    <!-- header with pro indicator -->
+    <div class="flex items-center justify-between mb-6 sm:mb-8">
+        <div class="flex items-center gap-2">
+            <div class="w-8 h-8 bg-gray-900 rounded-xl flex items-center justify-center shadow-sm">
+                <i class="fas fa-sparkles text-white text-sm"></i>
+            </div>
+            <h1 class="text-xl font-semibold tracking-tight text-gray-800">lumi<span class="text-gray-500">translate</span></h1>
+            <!-- inline pro chip (visible only if pro) -->
+            <span id="inlineProChip" class="hidden ml-2 text-[0.6rem] font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded-full border border-amber-200">PRO</span>
+        </div>
+        <span class="text-xs text-gray-400 bg-white px-3 py-1.5 rounded-full shadow-sm border border-gray-100">额度管理 · 每日3次</span>
+    </div>
+
+    <!-- error toast container -->
+    <div id="errorToast" class="toast-slide hidden mb-5 w-full bg-red-50 border border-red-200 text-red-700 px-5 py-3.5 rounded-2xl flex items-center gap-3 shadow-md">
+        <i class="fas fa-circle-exclamation text-red-400 text-sm"></i>
+        <span id="errorMessage" class="text-sm font-medium flex-1">接口异常</span>
+        <button onclick="dismissError()" class="text-red-400 hover:text-red-600 transition">
+            <i class="fas fa-times text-sm"></i>
+        </button>
+    </div>
+
+    <!-- main grid: input/output -->
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5 md:gap-6 lg:gap-8">
+        <!-- LEFT: input card -->
+        <div class="bg-white rounded-2xl card-shadow border border-gray-100/80 overflow-hidden flex flex-col h-full">
+            <div class="px-5 pt-5 pb-2 flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">原文</span>
+                <span class="text-xs text-gray-300 flex items-center gap-1"><i class="far fa-keyboard"></i> EN / 中文</span>
+            </div>
+            <div class="px-5 pb-2 flex-1">
+                <textarea id="inputText" rows="6" placeholder="输入要翻译的文字…" class="w-full resize-none border-0 bg-transparent p-0 text-gray-700 text-base leading-relaxed placeholder:text-gray-300 focus:ring-0 focus:outline-none input-ring rounded-none"></textarea>
+            </div>
+            <div class="px-5 pb-4 flex justify-end">
+                <button id="clearBtn" class="group text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1.5 py-1.5 px-3 rounded-full bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200/60">
+                    <i class="far fa-trash-can text-xs group-hover:scale-95 transition-transform"></i>
+                    <span>清空</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- RIGHT: output card -->
+        <div class="bg-white rounded-2xl card-shadow border border-gray-100/80 overflow-hidden flex flex-col h-full">
+            <div class="px-5 pt-5 pb-2 flex items-center justify-between">
+                <span class="text-xs font-medium text-gray-400 uppercase tracking-wider">译文</span>
+                <span class="text-xs text-gray-300"><i class="far fa-clock"></i> AI 生成</span>
+            </div>
+            <div class="px-5 pb-2 flex-1">
+                <div id="outputText" class="w-full min-h-[6rem] text-gray-700 text-base leading-relaxed whitespace-pre-wrap break-words"></div>
+                <div id="outputPlaceholder" class="text-gray-300 text-base leading-relaxed">翻译结果会显示在这里</div>
+            </div>
+            <div class="px-5 pb-4 flex justify-end">
+                <button id="copyBtn" class="group text-xs text-gray-400 hover:text-gray-700 flex items-center gap-1.5 py-1.5 px-3 rounded-full bg-gray-50 hover:bg-gray-100 transition-all border border-gray-200/60 disabled:opacity-40 disabled:pointer-events-none">
+                    <i class="far fa-copy group-hover:scale-95 transition-transform"></i>
+                    <span>复制</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRANSLATE BUTTON + REMAINING DISPLAY -->
+    <div class="flex flex-col items-center my-6 sm:my-8">
+        <button id="translateBtn" class="btn-scale bg-gray-900 hover:bg-gray-800 text-white font-medium px-10 py-4 rounded-2xl shadow-md flex items-center gap-3 transition-all duration-200 border border-gray-700 hover:shadow-lg active:shadow-sm">
+            <i class="fas fa-arrow-right-arrow-left text-sm opacity-90"></i>
+            <span id="translateBtnText">翻译</span>
+        </button>
+        <!-- remaining quota indicator (daily) -->
+        <div id="quotaDisplay" class="mt-4 text-sm text-gray-400 bg-white/70 px-5 py-2 rounded-full shadow-sm border border-gray-100/80">
+            Remaining Free: <span id="remainingCount">3</span>/3
+        </div>
+    </div>
+
+    <!-- RECENT TRANSLATIONS - with clear all button and full history list -->
+    <div class="mt-8 md:mt-10">
+        <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-2 text-gray-400">
+                <i class="fas fa-history text-sm"></i>
+                <span class="text-xs font-medium tracking-wider">全部翻译历史</span>
+            </div>
+            <button id="clearAllHistoryBtn" class="text-xs text-gray-400 hover:text-gray-600 bg-white border border-gray-200 px-3 py-1.5 rounded-full flex items-center gap-1.5 transition-all hover:border-gray-300">
+                <i class="far fa-trash-can text-[10px]"></i>
+                <span>清空所有</span>
+            </button>
+        </div>
+        
+        <!-- history list container (table style) -->
+        <div id="historyListContainer" class="bg-white rounded-2xl border border-gray-100/80 card-shadow overflow-hidden">
+            <!-- if empty, show placeholder -->
+            <div id="historyEmpty" class="py-8 text-center text-gray-300 text-sm">
+                <i class="far fa-clock mb-2 text-lg"></i>
+                <p>暂无翻译记录</p>
+            </div>
+            <!-- actual history items will be injected here as divs -->
+            <div id="historyItems" class="divide-y divide-gray-100"></div>
+        </div>
+    </div>
+
+    <div class="mt-10 text-center text-[0.7rem] text-gray-300 border-t border-gray-100/60 pt-6">
+        <span>© LumiTranslate · AI翻译 · 每日免费3次 · Pro无限额度</span>
+    </div>
+</div>
+
+<script>
+(function() {
+    // ---------- DOM elements ----------
+    const inputEl = document.getElementById('inputText');
+    const outputEl = document.getElementById('outputText');
+    const outputPlaceholder = document.getElementById('outputPlaceholder');
+    const translateBtn = document.getElementById('translateBtn');
+    const translateBtnText = document.getElementById('translateBtnText');
+    const clearBtn = document.getElementById('clearBtn');
+    const copyBtn = document.getElementById('copyBtn');
+    const errorToast = document.getElementById('errorToast');
+    const errorMessage = document.getElementById('errorMessage');
+    const quotaDisplay = document.getElementById('quotaDisplay');
+    const remainingSpan = document.getElementById('remainingCount');
+    const proBadgeContainer = document.getElementById('proBadgeContainer');
+    const inlineProChip = document.getElementById('inlineProChip');
+    const proTopBanner = document.getElementById('proTopBanner');
+
+    // modal elements
+    const modal = document.getElementById('limitModal');
+    const modalContent = document.getElementById('modalContent');
+    const closeModalBtn = document.getElementById('closeModalBtn');
+    const secretCodeInput = document.getElementById('secretCodeInput');
+    const verifyCodeBtn = document.getElementById('verifyCodeBtn');
+    const codeError = document.getElementById('codeError');
+
+    // history new elements
+    const historyItems = document.getElementById('historyItems');
+    const historyEmpty = document.getElementById('historyEmpty');
+    const clearAllHistoryBtn = document.getElementById('clearAllHistoryBtn');
+
+    // ---------- storage keys ----------
+    const STORAGE_HISTORY = 'lumi_translate_history';      // array of { source, target, timestamp }
+    const STORAGE_QUOTA = 'lumi_translate_quota';
+    const STORAGE_PRO = 'lumi_translate_pro';
+
+    // ---------- helper: today string ----------
+    function getTodayStr() {
+        const d = new Date();
+        return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+    }
+
+    // ---------- pro status ----------
+    function isPro() {
+        return localStorage.getItem(STORAGE_PRO) === 'true';
+    }
+
+    function setPro(active) {
+        if (active) {
+            localStorage.setItem(STORAGE_PRO, 'true');
+            proBadgeContainer.classList.remove('hidden');
+            inlineProChip.classList.remove('hidden');
+            proTopBanner.classList.remove('hidden');
+        } else {
+            localStorage.setItem(STORAGE_PRO, 'false');
+            proBadgeContainer.classList.add('hidden');
+            inlineProChip.classList.add('hidden');
+            proTopBanner.classList.add('hidden');
+        }
+        updateQuotaUI();
+    }
+
+    // ---------- quota ----------
+    function getQuota() {
+        if (isPro()) return { used: 0, remaining: Infinity };
+        const raw = localStorage.getItem(STORAGE_QUOTA);
+        if (!raw) return { used: 0, remaining: 3, date: getTodayStr() };
+        try {
+            const data = JSON.parse(raw);
+            if (data.date === getTodayStr()) {
+                const used = data.used || 0;
+                return { used, remaining: Math.max(0, 3 - used), date: data.date };
+            } else {
+                return { used: 0, remaining: 3, date: getTodayStr() };
+            }
+        } catch (e) {
+            return { used: 0, remaining: 3, date: getTodayStr() };
+        }
+    }
+
+    function incrementQuota() {
+        if (isPro()) return;
+        const today = getTodayStr();
+        let used = 0;
+        const raw = localStorage.getItem(STORAGE_QUOTA);
+        if (raw) {
+            try {
+                const data = JSON.parse(raw);
+                if (data.date === today) used = data.used || 0;
+            } catch (e) {}
+        }
+        used = Math.min(3, used + 1);
+        localStorage.setItem(STORAGE_QUOTA, JSON.stringify({ date: today, used }));
+    }
+
+    function updateQuotaUI() {
+        if (isPro()) {
+            remainingSpan.innerText = '∞';
+            quotaDisplay.innerHTML = `Remaining Free: <span id="remainingCount">∞</span> · <span class="text-amber-600 font-medium">Pro</span>`;
+        } else {
+            const { remaining } = getQuota();
+            remainingSpan.innerText = remaining;
+            quotaDisplay.innerHTML = `Remaining Free: <span id="remainingCount">${remaining}</span>/3`;
+        }
+    }
+
+    function canTranslate() {
+        if (isPro()) return true;
+        return getQuota().remaining > 0;
+    }
+
+    // ---------- modal ----------
+    function showModal() {
+        modal.style.visibility = 'visible';
+        modal.style.opacity = '1';
+        modalContent.classList.remove('scale-95');
+        modalContent.classList.add('scale-100');
+        secretCodeInput.value = '';
+        codeError.classList.add('hidden');
+    }
+    function hideModal() {
+        modal.style.opacity = '0';
+        modalContent.classList.add('scale-95');
+        modalContent.classList.remove('scale-100');
+        setTimeout(() => { modal.style.visibility = 'hidden'; }, 150);
+    }
+    function verifyCode() {
+        if (secretCodeInput.value.trim() === '888888') {
+            setPro(true);
+            hideModal();
+        } else {
+            codeError.classList.remove('hidden');
+        }
+    }
+
+    // ---------- error toast ----------
+    window.dismissError = function() { errorToast.classList.add('hidden'); };
+    function showError(msg) {
+        errorMessage.innerText = msg;
+        errorToast.classList.remove('hidden');
+        setTimeout(() => errorToast.classList.add('hidden'), 5000);
+    }
+
+    // ---------- output ----------
+    function setOutputText(text) {
+        if (text && text.trim() !== '') {
+            outputEl.innerText = text;
+            outputPlaceholder.style.display = 'none';
+        } else {
+            outputEl.innerText = '';
+            outputPlaceholder.style.display = 'block';
+        }
+        updateCopyButtonState();
+    }
+
+    // ---------- history (full list, no limit) ----------
+    function getHistory() {
+        try {
+            return JSON.parse(localStorage.getItem(STORAGE_HISTORY)) || [];
+        } catch { return []; }
+    }
+
+    function saveHistory(hist) {
+        localStorage.setItem(STORAGE_HISTORY, JSON.stringify(hist)); // no limit now
+        renderHistoryList();
+    }
+
+    function addHistoryRecord(source, target) {
+        if (!source || !target || source.trim() === '' || target.trim() === '') return;
+        const newRec = {
+            source: source.trim(),
+            target: target.trim(),
+            timestamp: Date.now()
+        };
+        let hist = getHistory();
+        // avoid exact duplicate (same source and target)
+        hist = hist.filter(item => !(item.source === newRec.source && item.target === newRec.target));
+        hist.unshift(newRec); // newest first
+        saveHistory(hist);
+    }
+
+    function deleteHistoryItem(indexToDelete) {
+        let hist = getHistory();
+        hist = hist.filter((_, idx) => idx !== indexToDelete);
+        saveHistory(hist);
+    }
+
+    function fillInputFromHistory(source) {
+        inputEl.value = source;
+        inputEl.focus();
+    }
+
+    function clearAllHistory() {
+        if (confirm('确定清空所有翻译记录吗？')) {
+            saveHistory([]);
+        }
+    }
+
+    // render history as list with delete & fill buttons
+    function renderHistoryList() {
+        const hist = getHistory();
+        if (hist.length === 0) {
+            historyItems.innerHTML = '';
+            historyEmpty.style.display = 'block';
+            return;
+        }
+        historyEmpty.style.display = 'none';
+        
+        let html = '';
+        hist.forEach((item, idx) => {
+            const date = new Date(item.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            // escape for data attributes
+            const sourceEsc = item.source.replace(/"/g, '&quot;');
+            html += `
+                <div class="history-table-row flex items-center justify-between px-5 py-4 hover:bg-gray-50/80 transition-colors" data-index="${idx}">
+                    <div class="flex-1 min-w-0">
+                        <div class="text-sm font-medium text-gray-800 truncate max-w-md">${item.source}</div>
+                        <div class="text-xs text-gray-400 mt-0.5 flex items-center gap-2">
+                            <span>${date}</span>
+                            <span class="text-gray-300">→</span>
+                            <span class="text-gray-600 truncate">${item.target}</span>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 ml-4">
+                        <button class="fill-btn w-8 h-8 rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 flex items-center justify-center transition" data-source="${sourceEsc}" title="填入原文">
+                            <i class="fas fa-arrow-left text-xs"></i>
+                        </button>
+                        <button class="delete-btn w-8 h-8 rounded-full text-gray-400 hover:text-red-600 hover:bg-red-50 flex items-center justify-center transition" data-index="${idx}" title="删除">
+                            <i class="far fa-trash-can text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+            `;
+        });
+        historyItems.innerHTML = html;
+
+        // attach delete events
+        document.querySelectorAll('.delete-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const idx = btn.getAttribute('data-index');
+                if (idx !== null) deleteHistoryItem(parseInt(idx));
+            });
+        });
+        // attach fill events
+        document.querySelectorAll('.fill-btn').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                const src = btn.getAttribute('data-source');
+                if (src) fillInputFromHistory(src);
+            });
+        });
+    }
+
+    // ---------- copy ----------
+    function copyTranslation() {
+        const content = outputEl.innerText;
+        if (!content.trim()) { showError('没有可复制的内容'); return; }
+        navigator.clipboard.writeText(content).then(() => {
+            const orig = copyBtn.innerHTML;
+            copyBtn.innerHTML = '<i class="far fa-check-circle"></i><span>已复制</span>';
+            copyBtn.classList.add('text-gray-700', 'border-gray-300');
+            setTimeout(() => {
+                copyBtn.innerHTML = orig;
+                copyBtn.classList.remove('text-gray-700', 'border-gray-300');
+            }, 1500);
+        }).catch(() => showError('复制失败'));
+    }
+
+    function updateCopyButtonState() {
+        if (outputEl.innerText.trim() === '') {
+            copyBtn.setAttribute('disabled', 'disabled');
+            copyBtn.classList.add('opacity-40', 'pointer-events-none');
+        } else {
+            copyBtn.removeAttribute('disabled');
+            copyBtn.classList.remove('opacity-40', 'pointer-events-none');
+        }
+    }
+
+    // ---------- translation ----------
+    async function performTranslation() {
+        const text = inputEl.value.trim();
+        if (!text) { showError('请输入要翻译的文字'); return; }
+
+        if (!canTranslate()) {
+            showModal();
+            return;
+        }
+
+        translateBtn.disabled = true;
+        translateBtnText.innerText = 'Translating...';
+        translateBtn.classList.add('opacity-80', 'cursor-not-allowed');
+
+        try {
+            const response = await fetch('/api/translate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text })
+            });
+            if (!response.ok) {
+                let errMsg = `请求失败 (${response.status})`;
+                try { const d = await response.json(); errMsg = d.error || d.message || errMsg; } catch {}
+                throw new Error(errMsg);
+            }
+            const data = await response.json();
+            if (!data.translation) throw new Error('响应格式错误');
+
+            const translated = data.translation;
+            setOutputText(translated);
+
+            if (!isPro()) incrementQuota();
+            addHistoryRecord(text, translated);
+
+            errorToast.classList.add('hidden');
+            updateQuotaUI();
+
+        } catch (err) {
+            showError(err.message || '接口异常');
+        } finally {
+            translateBtn.disabled = false;
+            translateBtnText.innerText = '翻译';
+            translateBtn.classList.remove('opacity-80', 'cursor-not-allowed');
+        }
+    }
+
+    // ---------- clear input ----------
+    function clearInput() {
+        inputEl.value = '';
+        inputEl.focus();
+    }
+
+    // ---------- init ----------
+    function init() {
+        // pro status
+        if (localStorage.getItem(STORAGE_PRO) === 'true') setPro(true);
+        else setPro(false);
+
+        renderHistoryList();
+        setOutputText('');
+        updateQuotaUI();
+
+        translateBtn.addEventListener('click', performTranslation);
+        clearBtn.addEventListener('click', clearInput);
+        copyBtn.addEventListener('click', copyTranslation);
+        clearAllHistoryBtn.addEventListener('click', clearAllHistory);
+
+        // modal
+        closeModalBtn.addEventListener('click', hideModal);
+        verifyCodeBtn.addEventListener('click', verifyCode);
+        secretCodeInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') verifyCode(); });
+        modal.addEventListener('click', (e) => { if (e.target === modal) hideModal(); });
+
+        const observer = new MutationObserver(updateCopyButtonState);
+        observer.observe(outputEl, { childList: true, characterData: true, subtree: true });
+        updateCopyButtonState();
+    }
+
+    init();
+})();
+</script>
+</body>
+</html>
