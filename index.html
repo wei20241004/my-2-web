@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>LumiTranslate - Minimalist AI Translator powered by DeepSeek</title>
+    <!-- Tailwind CSS CDN + subtle animations -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* 金色呼吸灯效果 (glow) */
+        @keyframes softGlow {
+            0% { text-shadow: 0 0 5px rgba(255,215,0,0.2), 0 0 10px rgba(255,215,0,0.2); }
+            50% { text-shadow: 0 0 15px rgba(255,215,0,0.7), 0 0 30px rgba(255,215,0,0.5); }
+            100% { text-shadow: 0 0 5px rgba(255,215,0,0.2), 0 0 10px rgba(255,215,0,0.2); }
+        }
+        .glow-gold {
+            animation: softGlow 2.5s infinite ease-in-out;
+            color: #b8860b;
+            font-weight: 600;
+        }
+        /* Toast 动画 */
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -20px); }
+            15% { opacity: 1; transform: translate(-50%, 0); }
+            85% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -10px); }
+        }
+        .toast-pop {
+            animation: fadeInOut 2.2s ease forwards;
+            pointer-events: none;
+        }
+        /* 弹窗遮罩 */
+        .modal-overlay {
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        /* 微信号复制区域 */
+        .copy-wechat {
+            cursor: pointer;
+            transition: background 0.2s;
+            display: inline-block;
+            padding: 4px 10px;
+            background: #f3f4f6;
+            border-radius: 30px;
+        }
+        .copy-wechat:active {
+            background: #e5e7eb;
+        }
+        /* 确保按钮在移动端有足够触控区域 */
+        button {
+            min-height: 44px;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 font-sans antialiased text-gray-700 flex flex-col min-h-screen">
+
+    <!-- 全局 Toast -->
+    <div id="toast" class="fixed top-5 left-1/2 transform -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-medium hidden transition-all"></div>
+
+    <!-- 额度用尽弹窗 (Pro激活引导) -->
+    <div id="proModal" class="fixed inset-0 flex items-center justify-center z-50 modal-overlay hidden transition-opacity p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 m-4 border border-gray-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">✨ Unlock Pro</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl leading-5">&times;</button>
+            </div>
+            <div class="space-y-4">
+                <p class="text-gray-600 text-base leading-relaxed">
+                    <span class="font-medium text-amber-700">Daily limit reached.</span> To get a permanent Pro Activation Code, please pay <span class="font-semibold">$1.9 / 12 RMB</span> to the developer.
+                </p>
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p class="text-sm text-gray-500 mb-1">📲 Developer WeChat</p>
+                    <div id="wechatCopyTrigger" class="copy-wechat flex items-center gap-2 w-fit">
+                        <span class="text-base font-mono text-indigo-700">SLKQG2737602500</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2 flex items-center gap-1">
+                        <span>💬 After payment, send me a screenshot and I will give you the code instantly.</span>
+                    </p>
+                </div>
+                <button id="gotItBtn" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-3 rounded-xl text-base shadow-sm transition">Got it</button>
+            </div>
+        </div>
+    </div>
+
+    <main class="flex-1 flex items-center justify-center p-4 md:p-6">
+        <div class="w-full max-w-5xl bg-white/90 backdrop-blur-sm rounded-3xl shadow-xl border border-white/30 p-5 md:p-7">
+
+            <!-- 头部: 标题 + Pro呼吸灯 -->
+            <div class="flex items-center justify-between mb-4 flex-wrap gap-2">
+                <h1 class="text-2xl font-semibold tracking-tight text-gray-800">Lumi<span class="text-indigo-600">Translate</span></h1>
+                <div class="flex items-center gap-3">
+                    <span id="proBadge" class="glow-gold text-xs bg-amber-50 border border-amber-200 px-3 py-1.5 rounded-full shadow-sm">✨ Pro Plan Activated</span>
+                </div>
+            </div>
+
+            <!-- 语言选择 -->
+            <div class="flex flex-col sm:flex-row gap-3 mb-5">
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1 ml-1">source</label>
+                    <select id="sourceLang" class="w-full bg-gray-100 border-0 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-300 outline-none transition">
+                        <option value="auto" selected>🌐 Auto detect</option>
+                        <option value="en">🇬🇧 English</option>
+                        <option value="zh">🇨🇳 Chinese</option>
+                        <option value="es">🇪🇸 Spanish</option>
+                        <option value="fr">🇫🇷 French</option>
+                        <option value="de">🇩🇪 German</option>
+                    </select>
+                </div>
+                <div class="flex-1">
+                    <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1 ml-1">target</label>
+                    <select id="targetLang" class="w-full bg-gray-100 border-0 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-indigo-300 outline-none transition">
+                        <option value="en">🇬🇧 English</option>
+                        <option value="zh" selected>🇨🇳 Chinese</option>
+                        <option value="es">🇪🇸 Spanish</option>
+                        <option value="fr">🇫🇷 French</option>
+                        <option value="de">🇩🇪 German</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- 输入/输出区域 -->
+            <div class="flex flex-col md:flex-row gap-4 md:gap-6">
+                <!-- 左侧输入 -->
+                <div class="flex-1 space-y-2">
+                    <div class="relative bg-gray-100 rounded-2xl p-1 transition focus-within:ring-2 focus-within:ring-indigo-200">
+                        <textarea id="sourceText" rows="4" placeholder="Enter text to translate..." class="w-full bg-transparent border-0 p-4 text-gray-700 placeholder-gray-400 text-base resize-none focus:outline-none"></textarea>
+                    </div>
+                    <!-- 操作按钮组：清空 + 翻译 + 分享 -->
+                    <div class="flex items-center gap-2">
+                        <button id="clearBtn" class="flex-1 sm:flex-none bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 font-medium px-4 py-2.5 rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-1.5">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            <span>Clear</span>
+                        </button>
+                        <button id="translateBtn" class="flex-[2] sm:flex-none bg-indigo-600 hover:bg-indigo-700 text-white font-semibold px-5 py-2.5 rounded-xl text-base shadow-md transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:pointer-events-none">
+                            <span id="translateBtnText">Translate</span>
+                            <span id="spinner" class="hidden inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                        </button>
+                        <!-- 分享按钮 -->
+                        <button id="shareBtn" class="bg-white border border-gray-200 hover:bg-indigo-50 text-indigo-600 p-2.5 rounded-xl shadow-sm transition flex items-center justify-center" title="Share link">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 右侧输出 -->
+                <div class="flex-1 space-y-2">
+                    <div class="relative bg-indigo-50/80 rounded-2xl p-1 h-full">
+                        <textarea id="targetText" rows="4" readonly placeholder="Translation" class="w-full bg-transparent border-0 p-4 text-gray-700 text-base resize-none focus:outline-none"></textarea>
+                    </div>
+                    <button id="copyBtn" class="w-full bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-medium px-5 py-2.5 rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                        <span>Copy translation</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- 历史记录区 (含清空按钮) -->
+            <div class="mt-8 pt-2 border-t border-gray-100">
+                <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                    <h2 class="text-sm font-medium text-gray-500 tracking-wide">📋 recent translations</h2>
+                    <div class="flex gap-2">
+                        <button id="clearHistoryBtn" class="clear-history-btn text-xs bg-white border border-gray-200 hover:bg-gray-100 text-gray-500 px-4 py-2 rounded-full shadow-sm flex items-center gap-1">
+                            <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                            <span>Clear all</span>
+                        </button>
+                    </div>
+                </div>
+                <div id="historyContainer" class="flex flex-wrap gap-2 min-h-[60px]"></div>
+                <p id="historyEmpty" class="text-sm text-gray-400 italic text-center w-full py-3 hidden">No history yet. Translate something.</p>
+            </div>
+        </div>
+    </main>
+
+    <!-- 底部版权 (Built by WeiQiang) -->
+    <footer class="text-center text-xs text-gray-400 py-4 border-t border-gray-100/60">
+        © 2026 LumiTranslate | Built with <span class="text-pink-400">❤️</span> by WeiQiang
+    </footer>
+
+    <script>
+        (function() {
+            // ---------- 直接使用您提供的 DeepSeek API Key ----------
+            const DEEPSEEK_API_KEY = 'sk-deb90091d5594b9b9b94a78b81e20827';
+            
+            // ---------- 核心状态 ----------
+            const isPro = false;                // 默认非Pro，用于演示额度弹窗
+            let usageCount = 0;                  // 当前已使用次数 (非Pro下计数)
+            const MAX_USAGE = 3;                  // 免费额度上限
+
+            // DOM 元素
+            const sourceTextEl = document.getElementById('sourceText');
+            const targetTextEl = document.getElementById('targetText');
+            const sourceLangEl = document.getElementById('sourceLang');
+            const targetLangEl = document.getElementById('targetLang');
+            const translateBtn = document.getElementById('translateBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const shareBtn = document.getElementById('shareBtn');
+            const historyContainer = document.getElementById('historyContainer');
+            const historyEmpty = document.getElementById('historyEmpty');
+            const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+            const toastEl = document.getElementById('toast');
+            const spinner = document.getElementById('spinner');
+            const translateBtnText = document.getElementById('translateBtnText');
+
+            // 弹窗元素
+            const proModal = document.getElementById('proModal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const gotItBtn = document.getElementById('gotItBtn');
+            const wechatCopyTrigger = document.getElementById('wechatCopyTrigger');
+
+            // 加载状态
+            let isLoading = false;
+            const STORAGE_KEY = 'translationHistory';
+
+            // ---------- 通用函数 ----------
+            function showToast(message, type = 'success', duration = 2200) {
+                if (!toastEl) return;
+                toastEl.classList.remove('toast-pop');
+                toastEl.style.display = 'block';
+                toastEl.className = `fixed top-5 left-1/2 transform -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-medium ${type === 'error' ? 'bg-red-500' : 'bg-green-600'}`;
+                toastEl.textContent = message;
+                toastEl.style.opacity = '1';
+                toastEl.classList.add('toast-pop');
+                setTimeout(() => {
+                    toastEl.style.opacity = '0';
+                    setTimeout(() => toastEl.style.display = 'none', 300);
+                }, duration);
+            }
+
+            // ---------- 历史记录 ----------
+            function getHistory() {
+                try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+            }
+            function saveHistory(record) {
+                let history = getHistory();
+                history = history.filter(item => !(item.sourceText === record.sourceText && item.sourceLang === record.sourceLang && item.targetLang === record.targetLang));
+                history.unshift(record);
+                if (history.length > 5) history = history.slice(0, 5);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+                renderHistory();
+            }
+            function renderHistory() {
+                const history = getHistory();
+                if (history.length === 0) {
+                    historyContainer.innerHTML = '';
+                    historyEmpty.classList.remove('hidden');
+                    return;
+                }
+                historyEmpty.classList.add('hidden');
+                let html = '';
+                history.forEach((item) => {
+                    const sourcePreview = (item.sourceText || '').substring(0, 18) + ((item.sourceText || '').length > 18 ? '…' : '');
+                    const targetPreview = (item.targetText || '').substring(0, 12) + ((item.targetText || '').length > 12 ? '…' : '');
+                    html += `<div data-record='${JSON.stringify(item).replace(/'/g, "&#39;")}' 
+                        class="history-item cursor-pointer bg-white hover:bg-indigo-50 border border-gray-200 rounded-xl py-2 px-4 text-sm shadow-sm flex items-center gap-2 transition-all max-w-full">
+                        <span class="font-medium text-gray-700 truncate">${sourcePreview}</span>
+                        <span class="text-gray-400 mx-0.5">→</span>
+                        <span class="text-gray-600 truncate">${targetPreview}</span>
+                    </div>`;
+                });
+                historyContainer.innerHTML = html;
+            }
+
+            // 点击历史填充
+            historyContainer.addEventListener('click', (e) => {
+                const itemDiv = e.target.closest('.history-item');
+                if (!itemDiv) return;
+                const recordStr = itemDiv.dataset.record;
+                if (!recordStr) return;
+                try {
+                    const record = JSON.parse(recordStr);
+                    sourceTextEl.value = record.sourceText || '';
+                    targetTextEl.value = record.targetText || '';
+                    if (record.sourceLang) sourceLangEl.value = record.sourceLang;
+                    if (record.targetLang) targetLangEl.value = record.targetLang;
+                    showToast('History restored', 'success');
+                } catch { showToast('Error loading history', 'error'); }
+            });
+
+            // 清空全部历史
+            clearHistoryBtn.addEventListener('click', () => {
+                localStorage.removeItem(STORAGE_KEY);
+                renderHistory();
+                showToast('History cleared', 'success');
+            });
+
+            // ---------- DeepSeek API 调用 ----------
+            async function callDeepSeekAPI(text, sourceLang, targetLang) {
+                const url = 'https://api.deepseek.com/v1/chat/completions';
+
+                // 构建消息: 根据源语言调整提示
+                const sourceLangName = sourceLang === 'auto' ? 'auto-detected language' : 
+                                       sourceLang === 'en' ? 'English' :
+                                       sourceLang === 'zh' ? 'Chinese' :
+                                       sourceLang === 'es' ? 'Spanish' :
+                                       sourceLang === 'fr' ? 'French' : 'German';
+                const targetLangName = targetLang === 'en' ? 'English' :
+                                      targetLang === 'zh' ? 'Chinese' :
+                                      targetLang === 'es' ? 'Spanish' :
+                                      targetLang === 'fr' ? 'French' : 'German';
+
+                const systemPrompt = `You are a professional translator. Translate the user's input from ${sourceLangName} to ${targetLangName}. Only output the translated text, no explanations, no notes.`;
+                const userMessage = text;
+
+                const payload = {
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: userMessage }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 1000
+                };
+
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    throw new Error(`DeepSeek API error (${response.status}): ${errorData}`);
+                }
+
+                const data = await response.json();
+                const translatedText = data.choices?.[0]?.message?.content;
+                if (!translatedText) {
+                    throw new Error('Invalid API response format');
+                }
+                return translatedText.trim();
+            }
+
+            // ---------- 翻译入口 (核心修复：确保按钮绑定) ----------
+            async function handleTranslate() {
+                console.log('Translate clicked'); // 调试用
+                const text = sourceTextEl.value.trim();
+                if (!text) {
+                    showToast('Please enter text', 'error');
+                    return;
+                }
+                if (isLoading) return;
+
+                // 额度检查: 非Pro且次数用尽 -> 弹窗并阻止翻译
+                if (!isPro && usageCount >= MAX_USAGE) {
+                    proModal.classList.remove('hidden');
+                    return;
+                }
+
+                const sourceLang = sourceLangEl.value;
+                const targetLang = targetLangEl.value;
+
+                isLoading = true;
+                translateBtn.classList.add('opacity-80', 'pointer-events-none');
+                translateBtnText.textContent = 'Translating';
+                spinner.classList.remove('hidden');
+
+                try {
+                    // 调用真实的DeepSeek API
+                    const translated = await callDeepSeekAPI(text, sourceLang, targetLang);
+                    targetTextEl.value = translated;
+
+                    // 保存历史记录
+                    saveHistory({ sourceText: text, targetText: translated, sourceLang, targetLang });
+
+                    // 仅当非Pro时增加使用计数
+                    if (!isPro) {
+                        usageCount++;
+                        console.log('Usage count:', usageCount);
+                    }
+
+                    showToast('Translation ready', 'success');
+                } catch (error) {
+                    console.error('Translation error:', error);
+                    showToast(error.message || 'Translation failed', 'error');
+                } finally {
+                    isLoading = false;
+                    translateBtn.classList.remove('opacity-80', 'pointer-events-none');
+                    translateBtnText.textContent = 'Translate';
+                    spinner.classList.add('hidden');
+                }
+            }
+
+            // ---------- 绑定事件 (直接绑定到translateBtn) ----------
+            if (translateBtn) {
+                translateBtn.addEventListener('click', handleTranslate);
+                console.log('Translate button listener attached');
+            } else {
+                console.error('Translate button not found!');
+            }
+
+            clearBtn.addEventListener('click', () => {
+                sourceTextEl.value = '';
+                targetTextEl.value = '';
+                sourceTextEl.focus();
+            });
+
+            copyBtn.addEventListener('click', async () => {
+                if (!targetTextEl.value) {
+                    showToast('Nothing to copy', 'error');
+                    return;
+                }
+                try {
+                    await navigator.clipboard.writeText(targetTextEl.value);
+                    showToast('Copied!', 'success');
+                } catch {
+                    showToast('Copy failed', 'error');
+                }
+            });
+
+            // 分享按钮: 复制当前链接
+            shareBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    showToast('🔗 Link copied! Share it with your friends!', 'success');
+                } catch {
+                    showToast('Could not copy link', 'error');
+                }
+            });
+
+            // 微信号复制功能
+            wechatCopyTrigger.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                const wechatId = 'SLKQG2737602500';
+                try {
+                    await navigator.clipboard.writeText(wechatId);
+                    showToast('📋 WeChat ID copied!', 'success');
+                } catch {
+                    showToast('Copy failed', 'error');
+                }
+            });
+
+            // 关闭弹窗
+            function closeModal() { proModal.classList.add('hidden'); }
+            closeModalBtn.addEventListener('click', closeModal);
+            gotItBtn.addEventListener('click', closeModal);
+            window.addEventListener('click', (e) => { if (e.target === proModal) closeModal(); });
+
+            // 初始化历史记录
+            renderHistory();
+
+            // 可选：为了测试弹窗，可取消下面注释
+            // usageCount = 2;  // 测试用
+        })();
+    </script>
+</body>
+</html>
