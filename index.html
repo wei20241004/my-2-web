@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes">
+    <title>紫译 · 极简翻译 (Supabase版)</title>
+    <!-- Tailwind CSS (保留，但颜色覆写为紫色调) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- 引入 Supabase CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* 原有的紫色极简样式 (完全保留且不修改) */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            min-height: 100vh;
+            background: linear-gradient(145deg, #f5f0ff 0%, #ede9fe 100%);
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 1.5rem;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border-radius: 2.5rem;
+            box-shadow: 0 20px 40px -12px rgba(106, 13, 173, 0.25), 0 8px 24px -6px rgba(128, 0, 255, 0.15);
+            padding: 2rem 2rem 2.5rem;
+            max-width: 900px;
+            width: 100%;
+            border: 1px solid rgba(255, 255, 255, 0.6);
+        }
+        h1 {
+            font-size: 2.4rem;
+            font-weight: 550;
+            letter-spacing: -0.02em;
+            background: linear-gradient(135deg, #5b21b6, #8b5cf6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 0.4rem;
+        }
+        .subhead {
+            color: #6d4a9e;
+            font-weight: 400;
+            margin-bottom: 1.8rem;
+            border-left: 4px solid #c4b5fd;
+            padding-left: 1rem;
+            font-size: 1rem;
+        }
+        .pro-glow {
+            animation: proGlow 2.8s infinite ease-in-out;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: linear-gradient(145deg, #8b5cf6, #6d28d9);
+            color: white;
+            border: none;
+            box-shadow: 0 2px 10px rgba(139,92,246,0.5);
+        }
+        @keyframes proGlow {
+            0% { text-shadow: 0 0 5px rgba(139,92,246,0.2); box-shadow: 0 0 5px rgba(139,92,246,0.2); }
+            50% { text-shadow: 0 0 15px rgba(139,92,246,0.7); box-shadow: 0 0 20px rgba(139,92,246,0.5); }
+            100% { text-shadow: 0 0 5px rgba(139,92,246,0.2); box-shadow: 0 0 5px rgba(139,92,246,0.2); }
+        }
+        .toast-pop {
+            animation: fadeInOut 2.2s ease forwards;
+            pointer-events: none;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translate(-50%, -20px); }
+            15% { opacity: 1; transform: translate(-50%, 0); }
+            85% { opacity: 1; transform: translate(-50%, 0); }
+            100% { opacity: 0; transform: translate(-50%, -10px); }
+        }
+        .modal-overlay {
+            background-color: rgba(0,0,0,0.5);
+            backdrop-filter: blur(4px);
+        }
+        /* 复制邮箱样式 */
+        .copy-email {
+            cursor: pointer;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 16px;
+            background: #f3f4f6;
+            border-radius: 40px;
+            border: 1px solid #e5e7eb;
+        }
+        .copy-email:hover { background: #e5e7eb; }
+        .copy-email:active { background: #d1d5db; transform: scale(0.98); }
+        button { min-height: 44px; }
+        button:disabled { opacity: 0.6; cursor: not-allowed; }
+        textarea:focus, select:focus { outline: none; ring: 2px solid #8b5cf6; }
+        /* 原紫色风格的其他元素 */
+        .badge {
+            background: #8b5cf6;
+            color: white;
+            border-radius: 40px;
+            padding: 0.2rem 1rem;
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+        }
+        .translate-btn {
+            background: #8b5cf6;
+            border: none;
+            padding: 0.8rem 2.2rem;
+            border-radius: 40px;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 6px 14px #bba5ff;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .translate-btn:hover { background: #7c3aed; }
+    </style>
+</head>
+<body class="antialiased text-gray-700">
+
+    <!-- 固定的Google登录按钮 (绝对定位，位于右上角) -->
+    <button id="auth-btn" style="position: fixed; top: 20px; right: 20px; z-index: 1000; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); color: white; padding: 8px 16px; border-radius: 20px; cursor: pointer; backdrop-filter: blur(10px);">Login with Google</button>
+
+    <!-- 支付/激活引导 Modal (保留原样，仅微调文字) -->
+    <div id="proModal" class="fixed inset-0 flex items-center justify-center z-50 modal-overlay hidden transition-opacity p-4">
+        <div class="bg-white rounded-3xl max-w-md w-full shadow-2xl p-6 m-4 border border-gray-100">
+            <div class="flex justify-between items-center mb-4">
+                <h3 class="text-xl font-bold text-gray-800">✨ 解锁无限翻译</h3>
+                <button id="closeModalBtn" class="text-gray-400 hover:text-gray-600 text-2xl leading-5 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition">&times;</button>
+            </div>
+            <div class="space-y-5">
+                <p class="text-gray-600 text-base leading-relaxed">
+                    <span class="font-medium text-amber-700">今日免费次数已用完。</span> 请登录Google账号（Pro用户自动无限）或输入激活码。
+                </p>
+                
+                <!-- 联系邮箱（复制） -->
+                <div class="bg-gray-50 rounded-xl p-4 border border-gray-100">
+                    <p class="text-sm text-gray-500 mb-2">📧 开发者邮箱 (点击复制)</p>
+                    <div id="emailCopyTrigger" class="copy-email w-fit">
+                        <span class="text-base font-mono text-purple-700 font-medium">weiqiang@lumi.dev</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                            <path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                        </svg>
+                    </div>
+                    <p class="text-xs text-gray-400 mt-2">💬 支付后截图发送至此邮箱，即刻发送激活码。</p>
+                </div>
+                
+                <!-- 激活码输入 (保留888888/777777) -->
+                <div class="pt-1">
+                    <p class="text-sm font-medium text-gray-700 mb-2">🔑 已有激活码？</p>
+                    <div class="flex flex-col sm:flex-row gap-2">
+                        <input type="text" id="activationCode" placeholder="输入激活码" 
+                               class="flex-1 bg-gray-100 border-0 rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-300 outline-none transition placeholder-gray-400">
+                        <button id="verifyCodeBtn" class="bg-purple-600 hover:bg-purple-700 text-white font-medium px-6 py-3 rounded-xl text-sm shadow-sm transition whitespace-nowrap">
+                            验证
+                        </button>
+                    </div>
+                    <p id="codeError" class="text-xs text-red-500 mt-2 hidden">无效激活码，请重试。</p>
+                </div>
+
+                <button id="gotItBtn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-3 rounded-xl text-base shadow-sm transition">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主卡片 (紫色极简风格) -->
+    <div class="glass-card w-full max-w-5xl">
+        <!-- 头部 -->
+        <div class="flex items-center justify-between mb-2 flex-wrap gap-2">
+            <h1>✨ 紫译 · Lumi</h1>
+            <span id="proBadge" class="pro-glow text-xs px-4 py-2 rounded-full shadow-md hidden">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-yellow-200" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
+                PRO
+            </span>
+        </div>
+        <div class="subhead">多语言 · 打字机动画 · DeepSeek AI</div>
+
+        <!-- 语言选择 (保留原功能) -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-5">
+            <div class="flex-1">
+                <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1 ml-1">源语言</label>
+                <select id="sourceLang" class="w-full bg-gray-100 border-0 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-300 outline-none transition">
+                    <option value="auto" selected>🌐 自动检测</option>
+                    <option value="en">🇬🇧 英语</option>
+                    <option value="zh">🇨🇳 中文</option>
+                    <option value="es">🇪🇸 西班牙语</option>
+                    <option value="fr">🇫🇷 法语</option>
+                    <option value="de">🇩🇪 德语</option>
+                </select>
+            </div>
+            <div class="flex-1">
+                <label class="block text-xs font-medium text-gray-400 uppercase tracking-wider mb-1 ml-1">目标语言</label>
+                <select id="targetLang" class="w-full bg-gray-100 border-0 rounded-2xl px-4 py-3 text-sm focus:ring-2 focus:ring-purple-300 outline-none transition">
+                    <option value="en">🇬🇧 英语</option>
+                    <option value="zh" selected>🇨🇳 中文</option>
+                    <option value="es">🇪🇸 西班牙语</option>
+                    <option value="fr">🇫🇷 法语</option>
+                    <option value="de">🇩🇪 德语</option>
+                </select>
+            </div>
+        </div>
+
+        <!-- 输入/输出区域 -->
+        <div class="flex flex-col md:flex-row gap-4 md:gap-6">
+            <!-- 左侧输入 -->
+            <div class="flex-1 space-y-2">
+                <div class="relative bg-gray-100 rounded-2xl p-1 transition focus-within:ring-2 focus-within:ring-purple-200">
+                    <textarea id="sourceText" rows="4" placeholder="输入文字..." class="w-full bg-transparent border-0 p-4 text-gray-700 placeholder-gray-400 text-base resize-none focus:outline-none"></textarea>
+                </div>
+                <div class="flex items-center gap-2">
+                    <button id="clearBtn" class="flex-1 sm:flex-none bg-white border border-gray-200 hover:bg-gray-100 text-gray-600 font-medium px-4 py-2.5 rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-1.5">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                        <span>清空</span>
+                    </button>
+                    <button id="translateBtn" class="flex-[2] sm:flex-none bg-purple-600 hover:bg-purple-700 text-white font-semibold px-5 py-2.5 rounded-xl text-base shadow-md transition flex items-center justify-center gap-2 disabled:opacity-60 disabled:pointer-events-none">
+                        <span id="translateBtnText">翻译</span>
+                        <span id="spinner" class="hidden inline-block h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin"></span>
+                    </button>
+                    <!-- 分享按钮 -->
+                    <button id="shareBtn" class="bg-white border border-gray-200 hover:bg-purple-50 text-purple-600 p-2.5 rounded-xl shadow-sm transition flex items-center justify-center" title="分享链接">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.8"><path stroke-linecap="round" stroke-linejoin="round" d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" /></svg>
+                    </button>
+                </div>
+            </div>
+            <!-- 右侧输出 -->
+            <div class="flex-1 space-y-2">
+                <div class="relative bg-purple-50/80 rounded-2xl p-1 h-full">
+                    <textarea id="targetText" rows="4" readonly placeholder="翻译结果" class="w-full bg-transparent border-0 p-4 text-gray-700 text-base resize-none focus:outline-none"></textarea>
+                </div>
+                <button id="copyBtn" class="w-full bg-white border border-gray-200 hover:bg-gray-100 text-gray-700 font-medium px-5 py-2.5 rounded-xl text-sm shadow-sm transition flex items-center justify-center gap-1.5">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" /></svg>
+                    <span>复制译文</span>
+                </button>
+            </div>
+        </div>
+
+        <!-- 历史记录 (保留) -->
+        <div class="mt-8 pt-2 border-t border-gray-100">
+            <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+                <h2 class="text-sm font-medium text-gray-500 tracking-wide">📋 近期翻译</h2>
+                <button id="clearHistoryBtn" class="text-xs bg-white border border-gray-200 hover:bg-gray-100 text-gray-500 px-4 py-2 rounded-full shadow-sm flex items-center gap-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+                    <span>清空</span>
+                </button>
+            </div>
+            <div id="historyContainer" class="flex flex-wrap gap-2 min-h-[60px]"></div>
+            <p id="historyEmpty" class="text-sm text-gray-400 italic text-center w-full py-3 hidden">暂无历史</p>
+        </div>
+    </div>
+
+    <!-- 底部 -->
+    <footer class="fixed bottom-2 text-center text-xs text-gray-400 w-full">© 2026 紫译 · 极简翻译</footer>
+
+    <script>
+        (function() {
+            // ---------- Supabase 初始化 (给定凭证) ----------
+            const SUPABASE_URL = 'https://xylrmakgilreaodlnxvx.supabase.co';
+            const SUPABASE_ANON_KEY = 'sb_publishable_akCwc4tJ9hClqHdi6XcfQ_NpFc7_8a';
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+            // ---------- DeepSeek API 密钥 (保留原有) ----------
+            const DEEPSEEK_API_KEY = 'sk-deb90091d5594b9b9b94a78b81e20827';
+
+            // ---------- 状态变量 ----------
+            let currentUser = null;               // Supabase 用户
+            let isPro = false;                     // 是否pro (从用户元数据或激活码)
+            let sessionFreeCount = 0;               // 登录后非pro用户的会话计数 (每次登录重置)
+            // 未登录时使用 localStorage 计数
+            let freeUsageCount = parseInt(localStorage.getItem('free_usage_count') || '0');
+
+            const FREE_MAX_USAGE = 3;
+
+            // DOM 元素
+            const authBtn = document.getElementById('auth-btn');
+            const proModal = document.getElementById('proModal');
+            const closeModalBtn = document.getElementById('closeModalBtn');
+            const gotItBtn = document.getElementById('gotItBtn');
+            const emailCopyTrigger = document.getElementById('emailCopyTrigger');
+            const activationCode = document.getElementById('activationCode');
+            const verifyCodeBtn = document.getElementById('verifyCodeBtn');
+            const codeError = document.getElementById('codeError');
+            const proBadge = document.getElementById('proBadge');
+            const sourceTextEl = document.getElementById('sourceText');
+            const targetTextEl = document.getElementById('targetText');
+            const sourceLangEl = document.getElementById('sourceLang');
+            const targetLangEl = document.getElementById('targetLang');
+            const translateBtn = document.getElementById('translateBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const copyBtn = document.getElementById('copyBtn');
+            const shareBtn = document.getElementById('shareBtn');
+            const historyContainer = document.getElementById('historyContainer');
+            const historyEmpty = document.getElementById('historyEmpty');
+            const clearHistoryBtn = document.getElementById('clearHistoryBtn');
+            const toastEl = document.getElementById('toast');
+            const spinner = document.getElementById('spinner');
+            const translateBtnText = document.getElementById('translateBtnText');
+
+            // 若toast不存在则动态创建 (原LumiTranslate有，我们补一个)
+            if (!toastEl) {
+                const div = document.createElement('div');
+                div.id = 'toast';
+                div.className = 'fixed top-5 left-1/2 transform -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-medium hidden transition-all';
+                document.body.appendChild(div);
+            }
+            const toast = document.getElementById('toast');
+
+            // 辅助函数: 显示toast
+            function showToast(message, type = 'success', duration = 2200) {
+                toast.classList.remove('toast-pop');
+                toast.style.display = 'block';
+                toast.className = `fixed top-5 left-1/2 transform -translate-x-1/2 z-50 px-5 py-3 rounded-2xl shadow-xl text-white text-sm font-medium ${type === 'error' ? 'bg-red-500' : 'bg-purple-600'}`;
+                toast.textContent = message;
+                toast.classList.add('toast-pop');
+                setTimeout(() => {
+                    toast.style.opacity = '0';
+                    setTimeout(() => toast.style.display = 'none', 300);
+                }, duration);
+            }
+
+            // 更新PRO徽章
+            function updateProBadge() {
+                if (isPro) proBadge.classList.remove('hidden');
+                else proBadge.classList.add('hidden');
+            }
+
+            // ---------- 历史记录管理 (沿用LumiTranslate逻辑) ----------
+            const STORAGE_KEY = 'translationHistory';
+            function getHistory() {
+                try { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || []; } catch { return []; }
+            }
+            function saveHistory(record) {
+                let history = getHistory();
+                history = history.filter(item => !(item.sourceText === record.sourceText && item.sourceLang === record.sourceLang && item.targetLang === record.targetLang));
+                history.unshift(record);
+                if (history.length > 5) history = history.slice(0, 5);
+                localStorage.setItem(STORAGE_KEY, JSON.stringify(history));
+                renderHistory();
+            }
+            function renderHistory() {
+                const history = getHistory();
+                if (history.length === 0) {
+                    historyContainer.innerHTML = '';
+                    historyEmpty.classList.remove('hidden');
+                    return;
+                }
+                historyEmpty.classList.add('hidden');
+                let html = '';
+                history.forEach((item) => {
+                    const sourcePreview = (item.sourceText || '').substring(0, 18) + ((item.sourceText || '').length > 18 ? '…' : '');
+                    const targetPreview = (item.targetText || '').substring(0, 12) + ((item.targetText || '').length > 12 ? '…' : '');
+                    const recordStr = encodeURIComponent(JSON.stringify(item));
+                    html += `<div data-record='${recordStr}' 
+                        class="history-item cursor-pointer bg-white hover:bg-purple-50 border border-gray-200 rounded-xl py-2 px-4 text-sm shadow-sm flex items-center gap-2 transition-all max-w-full">
+                        <span class="font-medium text-gray-700 truncate">${sourcePreview}</span>
+                        <span class="text-gray-400 mx-0.5">→</span>
+                        <span class="text-gray-600 truncate">${targetPreview}</span>
+                    </div>`;
+                });
+                historyContainer.innerHTML = html;
+            }
+
+            // 点击历史恢复
+            historyContainer.addEventListener('click', (e) => {
+                const itemDiv = e.target.closest('.history-item');
+                if (!itemDiv) return;
+                const recordStr = itemDiv.dataset.record;
+                if (!recordStr) return;
+                try {
+                    const record = JSON.parse(decodeURIComponent(recordStr));
+                    sourceTextEl.value = record.sourceText || '';
+                    targetTextEl.value = record.targetText || '';
+                    if (record.sourceLang) sourceLangEl.value = record.sourceLang;
+                    if (record.targetLang) targetLangEl.value = record.targetLang;
+                    showToast('已恢复历史', 'success');
+                } catch { showToast('加载失败', 'error'); }
+            });
+
+            clearHistoryBtn.addEventListener('click', () => {
+                localStorage.removeItem(STORAGE_KEY);
+                renderHistory();
+                showToast('历史已清空', 'success');
+            });
+
+            // ---------- DeepSeek API 调用 ----------
+            async function callDeepSeekAPI(text, sourceLang, targetLang) {
+                const url = 'https://api.deepseek.com/v1/chat/completions';
+                const sourceLangName = sourceLang === 'auto' ? '自动检测' : 
+                                       sourceLang === 'en' ? '英语' : sourceLang === 'zh' ? '中文' :
+                                       sourceLang === 'es' ? '西班牙语' : sourceLang === 'fr' ? '法语' : '德语';
+                const targetLangName = targetLang === 'en' ? '英语' : targetLang === 'zh' ? '中文' :
+                                      targetLang === 'es' ? '西班牙语' : targetLang === 'fr' ? '法语' : '德语';
+                const systemPrompt = `你是一个专业翻译。将用户输入的${sourceLangName}翻译成${targetLangName}。只输出译文，不要解释。`;
+                const payload = {
+                    model: 'deepseek-chat',
+                    messages: [
+                        { role: 'system', content: systemPrompt },
+                        { role: 'user', content: text }
+                    ],
+                    temperature: 0.3,
+                    max_tokens: 1000
+                };
+                const response = await fetch(url, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                if (!response.ok) throw new Error(`API错误 (${response.status})`);
+                const data = await response.json();
+                const translatedText = data.choices?.[0]?.message?.content;
+                if (!translatedText) throw new Error('无效响应');
+                return translatedText.trim();
+            }
+
+            // ---------- 翻译处理 (集成计数逻辑) ----------
+            let isLoading = false;
+            async function handleTranslate() {
+                const text = sourceTextEl.value.trim();
+                if (!text) {
+                    showToast('请输入文字', 'error');
+                    return;
+                }
+                if (isLoading) return;
+
+                // 权限判断: 未登录且免费次数用尽 => 弹窗
+                if (!currentUser && freeUsageCount >= FREE_MAX_USAGE) {
+                    proModal.classList.remove('hidden');
+                    return;
+                }
+                // 登录但非pro且会话计数用尽
+                if (currentUser && !isPro && sessionFreeCount >= FREE_MAX_USAGE) {
+                    proModal.classList.remove('hidden');
+                    return;
+                }
+
+                const sourceLang = sourceLangEl.value;
+                const targetLang = targetLangEl.value;
+
+                isLoading = true;
+                translateBtn.disabled = true;
+                translateBtnText.textContent = '翻译中...';
+                spinner.classList.remove('hidden');
+
+                try {
+                    const translated = await callDeepSeekAPI(text, sourceLang, targetLang);
+                    targetTextEl.value = translated;
+                    saveHistory({ sourceText: text, targetText: translated, sourceLang, targetLang });
+
+                    // 更新计数
+                    if (currentUser) {
+                        if (!isPro) sessionFreeCount++;
+                    } else {
+                        freeUsageCount++;
+                        localStorage.setItem('free_usage_count', freeUsageCount);
+                    }
+
+                    showToast('翻译完成', 'success');
+                } catch (error) {
+                    console.error(error);
+                    showToast('翻译失败', 'error');
+                } finally {
+                    isLoading = false;
+                    translateBtn.disabled = false;
+                    translateBtnText.textContent = '翻译';
+                    spinner.classList.add('hidden');
+                }
+            }
+
+            // ---------- Supabase 登录与状态管理 ----------
+            async function signInWithGoogle() {
+                try {
+                    const { error } = await supabase.auth.signInWithOAuth({
+                        provider: 'google',
+                        options: { redirectTo: window.location.origin }
+                    });
+                    if (error) throw error;
+                } catch (err) {
+                    showToast('登录失败: ' + err.message, 'error');
+                }
+            }
+
+            // 监听认证状态变化
+            supabase.auth.onAuthStateChange((event, session) => {
+                if (session?.user) {
+                    currentUser = session.user;
+                    // 从元数据获取pro状态 (例如 user.user_metadata?.pro === true)
+                    isPro = session.user.user_metadata?.pro === true || session.user.app_metadata?.pro === true || false;
+                    sessionFreeCount = 0;  // 登录后重置会话计数
+                    // 登录后本地免费计数不再使用，但不清除，保留以备下次未登录
+                } else {
+                    currentUser = null;
+                    isPro = false;           // 退出登录后isPro由激活码决定
+                    sessionFreeCount = 0;
+                }
+                updateProBadge();
+                // 更新按钮文字 (可做视觉反馈)
+                authBtn.textContent = currentUser ? '已登录' : 'Login with Google';
+            });
+
+            // 初始化获取session
+            supabase.auth.getSession().then(({ data: { session } }) => {
+                if (session?.user) {
+                    currentUser = session.user;
+                    isPro = session.user.user_metadata?.pro === true || session.user.app_metadata?.pro === true || false;
+                    sessionFreeCount = 0;
+                } else {
+                    currentUser = null;
+                    isPro = false;
+                }
+                updateProBadge();
+                authBtn.textContent = currentUser ? '已登录' : 'Login with Google';
+            });
+
+            // 固定登录按钮点击
+            authBtn.addEventListener('click', signInWithGoogle);
+
+            // ---------- 激活码逻辑 (保留，仅在未登录时有效) ----------
+            function verifyCode() {
+                const code = activationCode.value.trim();
+                if (code === '888888' || code === '777777') {
+                    if (!currentUser) {
+                        isPro = true;
+                        updateProBadge();
+                        showToast('🎉 Pro已激活 (本地)', 'success');
+                    } else {
+                        showToast('您已登录，Pro状态由账号决定', 'info');
+                    }
+                    proModal.classList.add('hidden');
+                    codeError.classList.add('hidden');
+                    activationCode.value = '';
+                } else {
+                    codeError.classList.remove('hidden');
+                }
+            }
+            verifyCodeBtn.addEventListener('click', verifyCode);
+            activationCode.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') { e.preventDefault(); verifyCode(); }
+            });
+
+            // 复制邮箱
+            emailCopyTrigger.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                try {
+                    await navigator.clipboard.writeText('weiqiang@lumi.dev');
+                    showToast('📧 邮箱已复制', 'success');
+                } catch { showToast('复制失败', 'error'); }
+            });
+
+            // 关闭模态
+            function closeModal() { 
+                proModal.classList.add('hidden');
+                codeError.classList.add('hidden');
+                activationCode.value = '';
+            }
+            closeModalBtn.addEventListener('click', closeModal);
+            gotItBtn.addEventListener('click', closeModal);
+            window.addEventListener('click', (e) => { if (e.target === proModal) closeModal(); });
+
+            // 其他按钮事件
+            translateBtn.addEventListener('click', handleTranslate);
+            clearBtn.addEventListener('click', () => {
+                sourceTextEl.value = '';
+                targetTextEl.value = '';
+                sourceTextEl.focus();
+            });
+            copyBtn.addEventListener('click', async () => {
+                if (!targetTextEl.value) return showToast('无内容可复制', 'error');
+                try {
+                    await navigator.clipboard.writeText(targetTextEl.value);
+                    showToast('已复制', 'success');
+                } catch { showToast('复制失败', 'error'); }
+            });
+            shareBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(window.location.href);
+                    showToast('🔗 链接已复制', 'success');
+                } catch { showToast('复制失败', 'error'); }
+            });
+
+            // 初始渲染历史
+            renderHistory();
+        })();
+    </script>
+</body>
+</html>
