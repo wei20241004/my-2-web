@@ -4,11 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.5">
     <title>LumiTranslate · AI Translator</title>
-    <!-- Google Fonts: Inter -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,300..700&display=swap" rel="stylesheet">
-    <!-- Supabase JS (必须头部引入) -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         /* ===== 完全保留原有样式，未作任何修改 ===== */
@@ -160,7 +158,6 @@
             filter: drop-shadow(0 0 6px gold);
         }
 
-        /* google sign button - 保留原样式，ID已修正为google-login */
         .google-btn {
             background: #4285f4;
             border: none;
@@ -444,7 +441,6 @@
             margin-bottom: 2rem;
             font-size: 1.1rem;
         }
-        /* 支付按钮样式 — 同时保留 .pay-link 并新增 .pro-btn 以便脚本识别 */
         .pay-link {
             display: inline-block;
             background: #9f7aff;
@@ -456,9 +452,7 @@
             font-size: 1.2rem;
             box-shadow: 0 10px 25px #7f5ad9;
             transition: 0.2s;
-            border: none;
             cursor: pointer;
-            font-family: inherit;
         }
         .pay-link:hover {
             background: #b69cff;
@@ -496,28 +490,23 @@
     </style>
 </head>
 <body>
-    <!-- floating purple blobs (breathing light) -->
     <div class="blob blob-1"></div>
     <div class="blob blob-2"></div>
     <div class="blob blob-3"></div>
 
-    <!-- main glass container -->
     <div class="glass-panel">
-        <!-- header with crown + auth -->
         <div class="header-row">
             <div class="logo-area">
                 <span class="logo-icon">✨</span>
                 <span class="logo-text">LumiTranslate</span>
             </div>
             <div class="action-buttons">
-                <!-- crown button -->
                 <button class="crown-btn" id="crownBtn">
                     <svg viewBox="0 0 24 24" stroke="currentColor" stroke-width="1.2" fill="none">
                         <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
                     </svg>
                     <span>PRO</span>
                 </button>
-                <!-- google sign in/out - 添加了固定ID google-login -->
                 <button class="google-btn" id="google-login">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -530,7 +519,6 @@
             </div>
         </div>
 
-        <!-- language selector row -->
         <div class="lang-row">
             <div class="lang-item">
                 <span class="lang-label">source</span>
@@ -555,9 +543,7 @@
             </div>
         </div>
 
-        <!-- translation grid -->
         <div class="translation-grid">
-            <!-- left: input -->
             <div class="translation-card">
                 <div class="card-header">
                     <span>INPUT</span>
@@ -571,7 +557,6 @@
                     </button>
                 </div>
             </div>
-            <!-- right: output (typewriter) -->
             <div class="translation-card">
                 <div class="card-header">
                     <span>OUTPUT</span>
@@ -583,14 +568,10 @@
                         <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8 5H6a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2v-1M8 5a2 2 0 002 2h2a2 2 0 002-2M8 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
                         <span>Copy</span>
                     </button>
-                    <button class="icon-btn" id="shareBtn">
-                        <svg fill="none" stroke="currentColor" viewBox="0 0 24 24"><path d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684z"/></svg>
-                    </button>
                 </div>
             </div>
         </div>
 
-        <!-- translate main button -->
         <div style="display: flex; justify-content: center; margin: 1rem 0 2rem;">
             <button class="translate-main-btn" id="translate-btn">
                 <span>Translate</span>
@@ -598,7 +579,6 @@
             </button>
         </div>
 
-        <!-- history section -->
         <div class="history-section">
             <div class="history-title">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
@@ -609,13 +589,13 @@
         </div>
     </div>
 
-    <!-- Upgrade modal (paywall) 注意：原链接已改为 button，并添加 pro-btn 类 -->
     <div class="modal" id="paywallModal">
         <div class="modal-card">
             <h2>✨ Upgrade to Pro</h2>
-            <p>Sign in or get unlimited access for just $2.</p>
-            <!-- 关键修改：将 a 替换为 button，保留 pay-link 样式并增加 pro-btn 类，移除 href 和 target -->
-            <button id="paymentLink" class="pay-link pro-btn">Continue to payment →</button>
+            <p>Sign in or get unlimited access for just $9.9</p>
+            <div id="payment-btn-container">
+                <button id="real-payment-btn" class="pay-link">Continue to payment →</button>
+            </div>
             <div>
                 <button class="modal-close" id="closeModalBtn">Close</button>
             </div>
@@ -624,34 +604,20 @@
 
     <script>
         (function() {
-            // ========== 1. Supabase 初始化 (使用您提供的密钥) ==========
             const SUPABASE_URL = 'https://xylrmakgilreaodlnxvx.supabase.co';
             const SUPABASE_ANON_KEY = 'sb_publishable_akCw-c4tJ9hC1qHdi6XcfQ_NpFc7_8a';
-            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-                auth: {
-                    autoRefreshToken: true,
-                    persistSession: true,
-                    detectSessionInUrl: true
-                }
-            });
-
-            // ========== 2. DeepSeek API (完整保留原有接口) ==========
+            const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
             const DEEPSEEK_API_KEY = 'sk-deb90091d5594b9b9b94a78b81e20827';
 
-            // ========== 3. 状态变量 ==========
             let currentUser = null;
-            // 登录即视为 Pro（满足“登录后点亮皇冠且无限次”需求）
-            let isPro = false;
-            let freeUsageCount = parseInt(localStorage.getItem('free_usage_count') || '0');
-            const FREE_MAX = 3;
+            let isPro = false; 
 
-            // DOM 元素
             const googleLoginBtn = document.getElementById('google-login');
             const authBtnText = document.getElementById('authBtnText');
             const crownBtn = document.getElementById('crownBtn');
             const payModal = document.getElementById('paywallModal');
             const closeModalBtn = document.getElementById('closeModalBtn');
-            const paymentLink = document.getElementById('paymentLink'); // 现在是 button
+            const realPaymentBtn = document.getElementById('real-payment-btn');
             const inputText = document.getElementById('input-text');
             const outputDiv = document.getElementById('output-text');
             const sourceLang = document.getElementById('sourceLang');
@@ -660,82 +626,48 @@
             const spinner = document.getElementById('translateSpinner');
             const clearBtn = document.getElementById('clearBtn');
             const copyBtn = document.getElementById('copyBtn');
-            const shareBtn = document.getElementById('shareBtn');
             const inputCharCount = document.getElementById('inputCharCount');
             const outputCharCount = document.getElementById('outputCharCount');
             const historyContainer = document.getElementById('historyContainer');
             const historyEmpty = document.getElementById('historyEmpty');
 
-            // ========== 删除原来给 paymentLink.href 赋值的无效行 (因为现在是 button 没有 href) ==========
-            // 原代码: paymentLink.href = 'https://your-payment-link.com';  // 已移除
+            function showPaywall() { payModal.classList.add('active'); }
+            function hidePaywall() { payModal.classList.remove('active'); }
 
-            // ========== 4. 辅助函数 ==========
-            function showPaywall() {
-                payModal.classList.add('active');
-            }
-            function hidePaywall() {
-                payModal.classList.remove('active');
-            }
-            // 更新皇冠样式及按钮样式
             function updateUI() {
                 if (currentUser) {
-                    // 登录状态
                     authBtnText.innerText = 'Sign Out';
                     googleLoginBtn.classList.add('signout-btn');
-                    isPro = true;           // 登录即Pro
                     crownBtn.classList.add('pro');
                 } else {
                     authBtnText.innerText = 'Sign in with Google';
                     googleLoginBtn.classList.remove('signout-btn');
-                    isPro = false;
                     crownBtn.classList.remove('pro');
                 }
             }
 
-            // 更新字符计数
             function updateCounts() {
                 inputCharCount.innerText = inputText.value.length;
                 outputCharCount.innerText = outputDiv.innerText.length;
             }
             inputText.addEventListener('input', updateCounts);
 
-            // ========== 5. Supabase 登录/登出 ==========
-            async function handleGoogleAuth() {
+            googleLoginBtn.addEventListener('click', async () => {
                 if (currentUser) {
-                    // 登出
                     await supabase.auth.signOut();
                 } else {
-                    // 登录 - 使用 window.location.origin 保证重定向一致
                     await supabase.auth.signInWithOAuth({
                         provider: 'google',
                         options: { redirectTo: window.location.origin }
                     });
                 }
-            }
-            googleLoginBtn.addEventListener('click', handleGoogleAuth);
+            });
 
-            // 监听认证状态变化 (实时更新)
             supabase.auth.onAuthStateChange((event, session) => {
-                if (session?.user) {
-                    currentUser = session.user;
-                } else {
-                    currentUser = null;
-                }
+                currentUser = session?.user || null;
                 updateUI();
             });
 
-            // 页面加载时立即检查当前 session (修复状态丢失)
-            supabase.auth.getSession().then(({ data: { session } }) => {
-                if (session?.user) {
-                    currentUser = session.user;
-                } else {
-                    currentUser = null;
-                }
-                updateUI();
-            });
-
-            // ========== 6. 翻译核心逻辑 (打字机 + API) ==========
-            // 打字机效果
             async function typewriter(text, element, delay = 25) {
                 element.innerText = '';
                 for (let i = 0; i < text.length; i++) {
@@ -744,203 +676,79 @@
                 }
             }
 
-            // 调用 DeepSeek API
             async function callTranslateAPI(text, src, tgt) {
                 const url = 'https://api.deepseek.com/v1/chat/completions';
-                const srcMap = { auto: 'auto', en: 'English', zh: 'Chinese', es: 'Spanish', fr: 'French', de: 'German' };
-                const tgtMap = { en: 'English', zh: 'Chinese', es: 'Spanish', fr: 'French', de: 'German' };
-                const sourceName = srcMap[src] || src;
-                const targetName = tgtMap[tgt] || tgt;
-                const systemPrompt = `You are a professional translator. Translate from ${sourceName} to ${targetName}. Only output the translated text, no explanations.`;
-                const payload = {
-                    model: 'deepseek-chat',
-                    messages: [
-                        { role: 'system', content: systemPrompt },
-                        { role: 'user', content: text }
-                    ],
-                    temperature: 0.3,
-                    max_tokens: 1000
-                };
+                const systemPrompt = `You are a professional translator. Translate from ${src} to ${tgt}. Only output the translated text.`;
                 const response = await fetch(url, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${DEEPSEEK_API_KEY}`
                     },
-                    body: JSON.stringify(payload)
+                    body: JSON.stringify({
+                        model: 'deepseek-chat',
+                        messages: [{role:'system', content:systemPrompt}, {role:'user', content:text}],
+                        temperature: 0.3
+                    })
                 });
-                if (!response.ok) throw new Error(`API error ${response.status}`);
                 const data = await response.json();
-                const translated = data.choices?.[0]?.message?.content;
-                if (!translated) throw new Error('Empty response');
-                return translated.trim();
+                return data.choices[0].message.content.trim();
             }
 
-            // 历史记录管理
             const HISTORY_KEY = 'lumitranslate_history';
-            function getHistory() {
-                try { return JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch { return []; }
-            }
             function saveHistory(entry) {
-                let hist = getHistory();
-                hist = hist.filter(h => !(h.source === entry.source && h.target === entry.target));
+                let hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
                 hist.unshift(entry);
-                if (hist.length > 6) hist = hist.slice(0, 6);
-                localStorage.setItem(HISTORY_KEY, JSON.stringify(hist));
+                localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(0, 6)));
                 renderHistory();
             }
             function renderHistory() {
-                const hist = getHistory();
-                if (hist.length === 0) {
-                    historyContainer.innerHTML = '';
-                    historyEmpty.style.display = 'block';
-                    return;
-                }
+                const hist = JSON.parse(localStorage.getItem(HISTORY_KEY) || '[]');
+                if (hist.length === 0) { historyEmpty.style.display = 'block'; return; }
                 historyEmpty.style.display = 'none';
-                let html = '';
-                hist.forEach(item => {
-                    const preview = (item.source || '').substring(0, 20) + ((item.source || '').length > 20 ? '…' : '');
-                    html += `<div class="history-chip" data-src="${encodeURIComponent(JSON.stringify(item))}">${preview}</div>`;
-                });
-                historyContainer.innerHTML = html;
+                historyContainer.innerHTML = hist.map(item => `<div class="history-chip">${item.source.substring(0,20)}...</div>`).join('');
             }
-            // 点击历史恢复
-            historyContainer.addEventListener('click', (e) => {
-                const chip = e.target.closest('.history-chip');
-                if (!chip) return;
-                try {
-                    const data = JSON.parse(decodeURIComponent(chip.dataset.src));
-                    inputText.value = data.source || '';
-                    outputDiv.innerText = data.target || '';
-                    sourceLang.value = data.sourceLang || 'auto';
-                    targetLang.value = data.targetLang || 'zh';
-                    updateCounts();
-                } catch (err) { console.warn(err); }
-            });
 
-            // 翻译按钮点击事件 (核心修复：未登录直接弹窗)
-            let isLoading = false;
             translateBtn.addEventListener('click', async () => {
                 const text = inputText.value.trim();
                 if (!text) return;
+                if (!currentUser) { showPaywall(); return; }
 
-                // === 关键修复：未登录直接显示付费墙，不调用API ===
-                if (!currentUser) {
-                    showPaywall();
-                    return;
-                }
-
-                // 已登录用户不受免费次数限制（因为 isPro = true）
-                // 但保留原有逻辑以防万一（如果以后区分pro状态）
-                if (!isPro && freeUsageCount >= FREE_MAX) {
-                    showPaywall();
-                    return;
-                }
-
-                isLoading = true;
                 translateBtn.disabled = true;
                 spinner.style.display = 'inline-block';
-
                 try {
-                    const src = sourceLang.value;
-                    const tgt = targetLang.value;
-                    const translated = await callTranslateAPI(text, src, tgt);
-
-                    // 打字机输出
-                    await typewriter(translated, outputDiv, 25);
-
-                    // 仅当非pro时增加计数（目前登录即pro，所以不会增加）
-                    if (!isPro) {
-                        freeUsageCount++;
-                        localStorage.setItem('free_usage_count', freeUsageCount);
-                    }
-
-                    // 保存历史
-                    saveHistory({ source: text, target: translated, sourceLang: src, targetLang: tgt });
-                    updateCounts();
+                    const translated = await callTranslateAPI(text, sourceLang.value, targetLang.value);
+                    await typewriter(translated, outputDiv);
+                    saveHistory({source: text, target: translated});
                 } catch (err) {
-                    console.error(err);
-                    outputDiv.innerText = 'Translation failed. Please retry.';
+                    outputDiv.innerText = 'Error. Try again.';
                 } finally {
-                    isLoading = false;
                     translateBtn.disabled = false;
                     spinner.style.display = 'none';
+                    updateCounts();
                 }
             });
 
-            // ========== 7. 其他按钮事件 ==========
-
-            // 清空按钮
-            clearBtn.addEventListener('click', () => {
-                inputText.value = '';
-                outputDiv.innerText = '';
-                updateCounts();
-                inputText.focus();
-            });
-
-            // 复制按钮
-            copyBtn.addEventListener('click', async () => {
-                if (!outputDiv.innerText) return;
-                try {
-                    await navigator.clipboard.writeText(outputDiv.innerText);
-                    alert('Copied!');
-                } catch { alert('Copy failed'); }
-            });
-
-            // 分享按钮
-            shareBtn.addEventListener('click', async () => {
-                try {
-                    await navigator.clipboard.writeText(window.location.href);
-                    alert('Link copied!');
-                } catch { alert('Copy failed'); }
-            });
-
-            // 关闭支付弹窗逻辑
+            clearBtn.addEventListener('click', () => { inputText.value = ''; outputDiv.innerText = ''; updateCounts(); });
+            copyBtn.addEventListener('click', () => { navigator.clipboard.writeText(outputDiv.innerText); alert('Copied!'); });
             closeModalBtn.addEventListener('click', hidePaywall);
-            window.addEventListener('click', (e) => {
-                if (e.target === payModal) hidePaywall();
-            });
-
-            // 皇冠点击也显示支付弹窗
             crownBtn.addEventListener('click', showPaywall);
 
- // ========== 8. 新增需求：为 .pro-btn 添加点击事件（支付按钮） ==========
- const upgradeBtn = document.querySelector('.pro-btn'); 
-            if (upgradeBtn) {
-                upgradeBtn.addEventListener('click', async (e) => {
-                    e.preventDefault(); 
+            // 支付逻辑
+            realPaymentBtn.addEventListener('click', async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (!user) { alert('Please login first!'); return; }
+                const baseCheckoutUrl = "https://www.creem.io/payment/prod_3oRUife1zuLwvTowB0WaJH";
+                window.open(`${baseCheckoutUrl}?custom_fields[user_id]=${user.id}`, '_blank');
+            });
 
-                    // 1. 检查是否登录
-                    const { data: { user } } = await supabase.auth.getUser();
-
-                    if (!user) {
-                        alert('Please login first!'); 
-                        return;
-                    }
-
-                    // 2. 使用新的正式支付链接
-                    const baseCheckoutUrl = "https://www.creem.io/payment/prod_3oRUife1zuLwvTowB0WaJH";
-                    const finalUrl = `${baseCheckoutUrl}?custom_fields[user_id]=${user.id}`;
-
-                    // 3. 在新标签页打开支付页面
-                    window.open(finalUrl, '_blank');
-                });
-            }
-
-
-            // 初始化历史渲染 & 计数
             renderHistory();
             updateCounts();
         })();
     </script>
-<footer style="text-align: center; padding: 20px; color: rgba(255,255,255,0.5); font-size: 12px; font-family: sans-serif;">
-    <p>© 2024 LumiTranslate. All rights reserved.</p>
-    <div style="margin-top: 10px;">
-        <a href="#privacy" onclick="alert('Privacy Policy: We only collect email for account synchronization. We do not share your data with third parties.')" style="color: rgba(255,255,255,0.6); text-decoration: none; margin: 0 10px;">Privacy Policy</a>
-        |
-        <a href="#terms" onclick="alert('Terms of Service: By using LumiTranslate, you agree to our fair usage policy. Pro members get unlimited translation access.')" style="color: rgba(255,255,255,0.6); text-decoration: none; margin: 0 10px;">Terms of Service</a>
-    </div>
-</footer>
-
+    <footer style="text-align: center; padding: 20px; color: rgba(255,255,255,0.5); font-size: 12px;">
+        <p>© 2024 LumiTranslate. All rights reserved.</p>
+        <p><a href="#" onclick="alert('Privacy Policy: We protect your data.')" style="color:inherit; text-decoration:none;">Privacy Policy</a> | <a href="#" onclick="alert('Terms: Fair usage applies.')" style="color:inherit; text-decoration:none;">Terms of Service</a></p>
+    </footer>
 </body>
 </html>
